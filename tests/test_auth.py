@@ -151,6 +151,7 @@ from mlflow_kubernetes_plugins.auth.constants import (
     RESOURCE_GATEWAY_SECRETS,
     RESOURCE_MCP_SERVERS,
     RESOURCE_REGISTERED_MODELS,
+    RESOURCE_SKILLS,
     WORKSPACES_ENABLED_ENV,
 )
 from mlflow_kubernetes_plugins.auth.core import (
@@ -4665,12 +4666,13 @@ def test_can_access_workspace_iterates_priority_resources(monkeypatch):
     assert authorizer.can_access_workspace(identity, "team-b", verb="get") is False
 
     calls = authorizer.is_allowed.call_args_list
-    assert len(calls) == 9
+    assert len(calls) == 10
     assert [c[0][1] for c in calls] == [
         RESOURCE_EXPERIMENTS,
         RESOURCE_DATASETS,
         RESOURCE_MCP_SERVERS,
         RESOURCE_REGISTERED_MODELS,
+        RESOURCE_SKILLS,
         RESOURCE_GATEWAY_SECRETS,
         RESOURCE_GATEWAY_ENDPOINTS,
         RESOURCE_GATEWAY_MODEL_DEFINITIONS,

@@ -22,6 +22,7 @@ HAS_MLFLOW_3_13_AUTH_SURFACE = MLFLOW_VERSION >= Version("3.13.0.dev0")
 HAS_MLFLOW_3_14_AUTH_SURFACE = MLFLOW_VERSION >= Version("3.14.0.dev0")
 HAS_MLFLOW_3_15_AUTH_SURFACE = MLFLOW_VERSION >= Version("3.15.0.dev0")
 HAS_MCP_REGISTRY = _module_exists("mlflow.server.mcp_server_api")
+HAS_SKILL_REGISTRY = _module_exists("mlflow.server.skill_registry_api")
 
 if HAS_MLFLOW_3_11_AUTH_SURFACE:
     GetPresignedDownloadUrl = artifacts_pb2.GetPresignedDownloadUrl
@@ -134,6 +135,7 @@ __all__ = [
     "HAS_MLFLOW_3_14_AUTH_SURFACE",
     "HAS_MLFLOW_3_15_AUTH_SURFACE",
     "HAS_MCP_REGISTRY",
+    "HAS_SKILL_REGISTRY",
     "ListEndpointGuardrailConfigs",
     "ListGatewayGuardrails",
     "ListGatewayBudgetPolicies",

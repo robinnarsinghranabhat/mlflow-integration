@@ -9,6 +9,7 @@ from mlflow_kubernetes_plugins.auth.constants import (
     RESOURCE_EXPERIMENTS,
     RESOURCE_MCP_SERVERS,
     RESOURCE_REGISTERED_MODELS,
+    RESOURCE_SKILLS,
 )
 from mlflow_kubernetes_plugins.auth.request_context import AuthorizationRequest
 from mlflow_kubernetes_plugins.auth.resource_names import (
@@ -16,6 +17,7 @@ from mlflow_kubernetes_plugins.auth.resource_names import (
     _normalize_string,
     _resolve_experiment_name_from_experiment_id,
     _resolve_experiment_name_from_run_id,
+    format_skill_resource_name,
 )
 
 if TYPE_CHECKING:
@@ -35,6 +37,7 @@ COLLECTION_POLICY_RESPONSE_EXPERIMENTS = "response_filter_experiments"
 COLLECTION_POLICY_RESPONSE_MCP_ACCESS_ENDPOINTS = "response_filter_mcp_access_endpoints"
 COLLECTION_POLICY_RESPONSE_MCP_SERVERS = "response_filter_mcp_servers"
 COLLECTION_POLICY_RESPONSE_SCORERS = "response_filter_scorers"
+COLLECTION_POLICY_RESPONSE_SKILLS = "response_filter_skills"
 COLLECTION_POLICY_RESPONSE_REGISTERED_MODELS = "response_filter_registered_models"
 COLLECTION_POLICY_RESPONSE_MODEL_VERSIONS = "response_filter_model_versions"
 COLLECTION_POLICY_RESPONSE_TRACES = "response_filter_traces"
@@ -42,6 +45,7 @@ COLLECTION_POLICY_RESPONSE_TRACES = "response_filter_traces"
 _EXPERIMENT_READ_RULE = (RESOURCE_EXPERIMENTS, "get")
 _MCP_SERVER_READ_RULE = (RESOURCE_MCP_SERVERS, "get")
 _REGISTERED_MODEL_READ_RULE = (RESOURCE_REGISTERED_MODELS, "get")
+_SKILL_READ_RULE = (RESOURCE_SKILLS, "get")
 
 _REQUEST_FILTER_POLICIES = {
     COLLECTION_POLICY_REQUEST_EXPERIMENT_IDS,
@@ -55,6 +59,7 @@ _RESPONSE_FILTER_POLICIES = {
     COLLECTION_POLICY_RESPONSE_MCP_ACCESS_ENDPOINTS,
     COLLECTION_POLICY_RESPONSE_MCP_SERVERS,
     COLLECTION_POLICY_RESPONSE_SCORERS,
+    COLLECTION_POLICY_RESPONSE_SKILLS,
     COLLECTION_POLICY_RESPONSE_REGISTERED_MODELS,
     COLLECTION_POLICY_RESPONSE_MODEL_VERSIONS,
     COLLECTION_POLICY_RESPONSE_TRACES,
@@ -566,6 +571,33 @@ def _filter_payload_mcp_servers(
     return True
 
 
+def _filter_payload_skills(
+    payload: dict[str, object],
+    authorizer: "KubernetesAuthorizer",
+    identity: "_RequestIdentity",
+    workspace_name: str,
+) -> bool:
+    skills = payload.get("skills")
+    if skills is None:
+        return True
+    if not isinstance(skills, list):
+        return False
+    payload["skills"] = [
+        skill
+        for skill in skills
+        if isinstance(skill, dict)
+        and (skill_name := _normalize_string(skill.get("name")))
+        and _is_allowed_named_resource(
+            authorizer,
+            identity,
+            workspace_name,
+            _SKILL_READ_RULE,
+            format_skill_resource_name(skill_name, _normalize_string(skill.get("organization"))),
+        )
+    ]
+    return True
+
+
 def _filter_payload_mcp_access_endpoints(
     payload: dict[str, object],
     authorizer: "KubernetesAuthorizer",
@@ -728,6 +760,10 @@ def apply_response_collection_filters(
             enforceable &= _filter_payload_mcp_servers(
                 filtered_payload, authorizer, identity, workspace_name
             )
+        elif policy == COLLECTION_POLICY_RESPONSE_SKILLS:
+            enforceable &= _filter_payload_skills(
+                filtered_payload, authorizer, identity, workspace_name
+            )
         elif policy == COLLECTION_POLICY_RESPONSE_SCORERS:
             enforceable &= _filter_payload_scorers(
                 filtered_payload, authorizer, identity, workspace_name
@@ -794,6 +830,7 @@ __all__ = [
     "COLLECTION_POLICY_RESPONSE_MCP_ACCESS_ENDPOINTS",
     "COLLECTION_POLICY_RESPONSE_MCP_SERVERS",
     "COLLECTION_POLICY_RESPONSE_SCORERS",
+    "COLLECTION_POLICY_RESPONSE_SKILLS",
     "COLLECTION_POLICY_RESPONSE_MODEL_VERSIONS",
     "COLLECTION_POLICY_RESPONSE_REGISTERED_MODELS",
     "COLLECTION_POLICY_RESPONSE_TRACES",

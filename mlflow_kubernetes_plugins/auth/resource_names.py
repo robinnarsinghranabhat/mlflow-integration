@@ -40,6 +40,7 @@ RESOURCE_NAME_PARSER_TRACE_V3_EXPERIMENT_ID_TO_NAME = "trace_v3_experiment_id_to
 RESOURCE_NAME_PARSER_ARTIFACT_EXPERIMENT_ID_TO_NAME = "artifact_experiment_id_to_name"
 RESOURCE_NAME_PARSER_OTEL_EXPERIMENT_ID_HEADER_TO_NAME = "otel_experiment_id_header_to_name"
 RESOURCE_NAME_PARSER_MCP_SERVER_NAME = "mcp_server_name"
+RESOURCE_NAME_PARSER_SKILL_NAME = "skill_name"
 RESOURCE_NAME_PARSER_GATEWAY_SECRET_ID_TO_NAME = "gateway_secret_id_to_name"
 RESOURCE_NAME_PARSER_OPTIONAL_GATEWAY_SECRET_ID_TO_NAME = "optional_gateway_secret_id_to_name"
 RESOURCE_NAME_PARSER_GATEWAY_ENDPOINT_ID_TO_NAME = "gateway_endpoint_id_to_name"
@@ -677,6 +678,24 @@ def _parse_mcp_server_name(request_context: AuthorizationRequest) -> tuple[str, 
     return (_get_request_param(request_context, "name"),)
 
 
+def format_skill_resource_name(name: str, organization: str | None) -> str:
+    """Return the RBAC resourceName for a Skill, matching the ``skills:/`` URI path form.
+
+    Skill and organization names cannot contain ``/`` or ``@``, so ``@org/name`` is unambiguous.
+    """
+    return f"@{organization}/{name}" if organization else name
+
+
+def _parse_skill_name(request_context: AuthorizationRequest) -> tuple[str, ...]:
+    name = _get_single_value(request_context.path_params, "name")
+    if name is None:
+        raise ResourceNameResolutionError(
+            "Missing required path parameter 'name' for authorization."
+        )
+    organization = _get_single_value(request_context.path_params, "organization")
+    return (format_skill_resource_name(name, organization),)
+
+
 def _parse_gateway_secret_id_to_name(request_context: AuthorizationRequest) -> tuple[str, ...]:
     return (
         _resolve_gateway_secret_name_from_secret_id(
@@ -945,6 +964,7 @@ RESOURCE_NAME_PARSERS: dict[str, "Callable[[AuthorizationRequest], tuple[str, ..
         _parse_otel_experiment_id_header_to_name
     ),
     RESOURCE_NAME_PARSER_MCP_SERVER_NAME: _parse_mcp_server_name,
+    RESOURCE_NAME_PARSER_SKILL_NAME: _parse_skill_name,
     RESOURCE_NAME_PARSER_GATEWAY_SECRET_ID_TO_NAME: _parse_gateway_secret_id_to_name,
     RESOURCE_NAME_PARSER_OPTIONAL_GATEWAY_SECRET_ID_TO_NAME: (
         _parse_optional_gateway_secret_id_to_name
@@ -1052,6 +1072,7 @@ __all__ = [
     "RESOURCE_NAME_PARSER_OPTIONAL_ACTION_ENDPOINT_ID_TO_NAME",
     "RESOURCE_NAME_PARSER_REGISTERED_MODEL_NAME",
     "RESOURCE_NAME_PARSER_RUN_ID_TO_EXPERIMENT_NAME",
+    "RESOURCE_NAME_PARSER_SKILL_NAME",
     "RESOURCE_NAME_PARSER_TRACE_ID_TO_EXPERIMENT_NAME",
     "RESOURCE_NAME_PARSER_TRACE_REQUEST_ID_TO_EXPERIMENT_NAME",
     "RESOURCE_NAME_PARSER_TRACE_V3_EXPERIMENT_ID_TO_NAME",
@@ -1059,6 +1080,7 @@ __all__ = [
     "RESOURCE_NAME_PARSERS",
     "ResourceNameResolutionError",
     "apply_response_cache_updates",
+    "format_skill_resource_name",
     "resolve_gateway_model_definition_names_for_use",
     "resolve_gateway_secret_names_for_use",
     "resolve_resource_names",
